@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance Manager Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+body, html{height:100%; overflow:auto; background: linear-gradient(-45deg,#4facfe,#00f2fe,#43e97b,#f8ffae); background-size:400% 400%; animation:gradientBG 15s ease infinite;}
+@keyframes gradientBG{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+
+/* Container */
+.dashboard-container{width:90%;max-width:1000px;margin:40px auto; color:#333;}
+.flex-container{display:flex; gap:20px; flex-wrap:wrap; justify-content:center;}
+.flip-card{background:#fff;border-radius:20px;padding:20px;width:280px;box-shadow:0 10px 30px rgba(0,0,0,0.3);transform-style:preserve-3d;transition:transform 0.6s; animation:floatCard 4s ease-in-out infinite;}
+.flip-card:hover{transform:translateY(-10px) rotateY(10deg);}
+@keyframes floatCard{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+
+/* Profile */
+.profile-box{display:flex;align-items:center;gap:12px;margin-bottom:20px; cursor:pointer;}
+.profile-box img{width:80px;height:80px;border-radius:50%;border:3px solid #0077cc; transition:0.3s;}
+.profile-box img:hover{transform:scale(1.05);}
+.profile-box div h2{color:#0077cc;}
+.profile-box div p{color:#555;}
+
+/* Cards */
+.card h3{margin-bottom:10px;color:#0077cc;}
+.progress{background:#ddd;border-radius:8px;overflow:hidden;margin-top:5px;}
+.progress-bar{background:#0077cc;height:20px;width:0%;text-align:center;color:white;font-weight:600;}
+
+/* Form */
+input,select,button{padding:8px;border-radius:6px;border:none;outline:none;width:100%;margin-top:8px;}
+button{cursor:pointer;background:#0077cc;color:white;font-weight:600;transition:0.3s;}
+button:hover{background:#005fa3;}
+
+/* Modal */
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);justify-content:center;align-items:center;z-index:10;}
+.modal-content{background:#fff;padding:20px;border-radius:12px;width:90%;max-width:400px;display:flex;flex-direction:column;gap:10px;}
+.modal-content h2{color:#0077cc;text-align:center;}
+.close-btn{align-self:flex-end;background:#ff3d00;color:#fff;padding:4px 10px;border-radius:6px;cursor:pointer;}
+.close-btn:hover{background:#ff6d00;}
+</style>
+</head>
+<body>
+
+<div class="dashboard-container">
+  <!-- Profile -->
+  <div class="profile-box flip-card" onclick="openProfileModal()">
+    <img id="profilePic" src="https://i.pravatar.cc/100" alt="Profile">
+    <div>
+      <h2 id="profileName">User Name</h2>
+      <p id="profileEmail">user@email.com</p>
+    </div>
+  </div>
+
+  <!-- Cards -->
+  <div class="flex-container">
+    <div class="card flip-card">
+      <h3>Total Spent</h3>
+      <p id="totalSpent">₹0</p>
+    </div>
+    <div class="card flip-card">
+      <h3>Remaining Balance</h3>
+      <p id="remainingBalance">₹20000</p>
+    </div>
+    <div class="card flip-card">
+      <h3>Savings</h3>
+      <p id="savings">₹0</p>
+    </div>
+
+    <!-- Add Expense -->
+    <div class="card flip-card">
+      <h3>Add Expense</h3>
+      <form id="expenseForm">
+        <input type="number" id="expenseAmount" placeholder="Amount" required>
+        <select id="expenseCategory">
+          <option value="Food">Food</option>
+          <option value="Transport">Transport</option>
+          <option value="Entertainment">Entertainment</option>
+          <option value="Bills">Bills</option>
+          <option value="Others">Others</option>
+        </select>
+        <button type="submit">Add Expense</button>
+      </form>
+    </div>
+
+    <!-- Expense Chart -->
+    <div class="card flip-card">
+      <h3>Expense Chart</h3>
+      <canvas id="expenseChart" width="180" height="180"></canvas>
+    </div>
+
+    <!-- Budget Progress -->
+    <div class="card flip-card">
+      <h3>Budget Progress</h3>
+      <p>Food</p><div class="progress"><div id="foodBar" class="progress-bar"></div></div>
+      <p>Transport</p><div class="progress"><div id="transportBar" class="progress-bar"></div></div>
+      <p>Entertainment</p><div class="progress"><div id="entBar" class="progress-bar"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Profile Modal -->
+<div class="modal" id="profileModal">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closeProfileModal()">X</span>
+    <h2>Edit Profile</h2>
+    <input type="text" id="modalName" placeholder="Full Name">
+    <input type="text" id="modalEmail" placeholder="Email">
+    <input type="text" id="modalBio" placeholder="Bio">
+    <label>Profile Picture:</label>
+    <input type="file" id="modalPicFile" accept="image/*">
+    <button onclick="saveProfile()">Save</button>
+  </div>
+</div>
+
+<script>
+// User
+let currentUser={name:'John Doe',email:'john@email.com',profilePic:'https://i.pravatar.cc/100',bio:'Finance Enthusiast'};
+
+// Load Profile
+function loadProfile(){
+  document.getElementById('profileName').textContent=currentUser.name;
+  document.getElementById('profileEmail').textContent=currentUser.email;
+  document.getElementById('profilePic').src=currentUser.profilePic;
+}
+loadProfile();
+
+// Profile Modal
+function openProfileModal(){
+  document.getElementById('profileModal').style.display='flex';
+  document.getElementById('modalName').value=currentUser.name;
+  document.getElementById('modalEmail').value=currentUser.email;
+  document.getElementById('modalBio').value=currentUser.bio;
+}
+function closeProfileModal(){document.getElementById('profileModal').style.display='none';}
+function saveProfile(){
+  currentUser.name=document.getElementById('modalName').value;
+  currentUser.email=document.getElementById('modalEmail').value;
+  currentUser.bio=document.getElementById('modalBio').value;
+  const fileInput=document.getElementById('modalPicFile');
+  if(fileInput.files && fileInput.files[0]){
+    const reader=new FileReader();
+    reader.onload=function(e){currentUser.profilePic=e.target.result; loadProfile();}
+    reader.readAsDataURL(fileInput.files[0]);
+  } else {loadProfile();}
+  closeProfileModal();
+}
+
+// Expense Chart & Logic
+const TOTAL_BUDGET=20000;
+const ctx=document.getElementById('expenseChart').getContext('2d');
+const expenseData={labels:['Food','Transport','Entertainment','Bills','Others'],datasets:[{data:[0,0,0,0,0],backgroundColor:['#0077cc','#28a745','#dc3545','#ffc107','#6f42c1']}]};
+const expenseChart=new Chart(ctx,{type:'pie',data:expenseData});
+let totalSpent=0;
+const budgets={Food:5000,Transport:3000,Entertainment:4000,Bills:6000,Others:2000};
+
+document.getElementById('expenseForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  let amount=parseInt(document.getElementById('expenseAmount').value);
+  let category=document.getElementById('expenseCategory').value;
+  let i=expenseData.labels.indexOf(category);
+  expenseData.datasets[0].data[i]+=amount;
+  expenseChart.update();
+  totalSpent+=amount;
+  updateSummary();
+  updateBars();
+  document.getElementById('expenseAmount').value='';
+});
+
+function updateSummary(){
+  let remaining=TOTAL_BUDGET-totalSpent;
+  let savings=Math.max(remaining,0);
+  document.getElementById('totalSpent').textContent="₹"+totalSpent;
+  document.getElementById('remainingBalance').textContent="₹"+remaining;
+  document.getElementById('savings').textContent="₹"+savings;
+}
+function updateBars(){
+  updateBar('foodBar',expenseData.datasets[0].data[0],budgets.Food);
+  updateBar('transportBar',expenseData.datasets[0].data[1],budgets.Transport);
+  updateBar('entBar',expenseData.datasets[0].data[2],budgets.Entertainment);
+}
+function updateBar(id,spent,budget){
+  let percent=Math.min((spent/budget)*100,100);
+  let bar=document.getElementById(id);
+  bar.style.width=percent+"%";
+  bar.textContent=percent.toFixed(0)+"%";
+}
+</script>
+
+</body>
+</html>
